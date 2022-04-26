@@ -3,6 +3,7 @@
 To execute:
 
 ```
+cd cpp
 mkdir build
 cd build
 cmake ..
