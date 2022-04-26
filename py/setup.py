@@ -11,7 +11,7 @@ ext_modules = cythonize(
                 language='c++'
                ))
 
-packages = ['cy.cythonmodule']
+packages = ['cy.cymodule']
 
 setup(name='cy',
       packages=packages,
