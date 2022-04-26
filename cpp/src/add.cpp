@@ -3,7 +3,7 @@
 using namespace cl::sycl;
 
 
-int main()
+int add()
 {
     float a[] = {1.0, 2.0, 3.0, 4.0};
     float b[] = {1.0, -1.0, 1.0, -1.0};
