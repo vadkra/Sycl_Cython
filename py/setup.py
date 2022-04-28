@@ -8,7 +8,8 @@ ext_modules = cythonize(
                 include_dirs=['../cpp/build/include/'],
                 library_dirs=['../cpp/build/lib/'],
                 libraries=['src'],
-                language='c++'
+                language='c++',
+                extra_compile_args = ["-fPIC"]
                ))
 
 packages = ['cy.cymodule']
