@@ -1,6 +1,6 @@
 #include <CL/sycl.hpp>
 
-using namespace cl::sycl
+using namespace cl::sycl;
 
 #define TOL (0.001)   // tolerance used in floating point comparisons
 #define LENGTH (1024) // Length of vectors a, b and c
