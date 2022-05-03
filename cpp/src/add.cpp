@@ -1,55 +1,31 @@
+#include <iostream>
 #include <CL/sycl.hpp>
 
-using namespace cl::sycl;
-
-#define TOL (0.001)   // tolerance used in floating point comparisons
-#define LENGTH (1024) // Length of vectors a, b and c
+class vector_addition;
 
 int add() {
-  std::vector h_a(LENGTH);             // a vector
-  std::vector h_b(LENGTH);             // b vector
-  std::vector h_c(LENGTH);             // c vector
-  std::vector h_r(LENGTH, 0xdeadbeef); // d vector (result)
-  // Fill vectors a and b with random float values
-  int count = LENGTH;
-  for (int i = 0; i < count; i++) {
-    h_a[i] = rand() / (float)RAND_MAX;
-    h_b[i] = rand() / (float)RAND_MAX;
-    h_c[i] = rand() / (float)RAND_MAX;
-  }
-  {
-    // Device buffers
-    buffer d_a(h_a);
-    buffer d_b(h_b);
-    buffer d_c(h_c);
-    buffer d_r(h_d);
-    queue myQueue;
-    command_group(myQueue, [&]()
-    {
-      // Data accessors
-     auto a = d_a.get_access<access::read>();
-     auto b = d_b.get_access<access::read>();
-     auto c = d_c.get_access<access::read>();
-     auto r = d_r.get_access<access::write>();
-      // Kernel
-      parallel_for(count, kernel_functor([ = ](id<> item) {
-        int i = item.get_global(0);
-        r[i] = a[i] + b[i] + c[i];
-      }));
-    });
-  }
-  // Test the results
-  int correct = 0;
-  float tmp;
-  for (int i = 0; i < count; i++) {
-    tmp = h_a[i] + h_b[i] + h_c[i]; // assign element i of a+b+c to tmp
-    tmp -= h_r[i]; // compute deviation of expected and output result
-    if (tmp * tmp < TOL * TOL) // correct if square deviation is less than
-                               // tolerance squared
-    {
-      correct++;
-    } 
-  }
-  // summarize results
-  return (correct == count);
+   cl::sycl::float4 a = { 1.0, 2.0, 3.0, 4.0 };
+   cl::sycl::float4 b = { 4.0, 3.0, 2.0, 1.0 };
+   cl::sycl::float4 c = { 0.0, 0.0, 0.0, 0.0 };
+
+   cl::sycl::default_selector device_selector;
+
+   cl::sycl::queue queue(device_selector);
+   {
+      cl::sycl::buffer<cl::sycl::float4, 1> a_sycl(&a, cl::sycl::range<1>(1));
+      cl::sycl::buffer<cl::sycl::float4, 1> b_sycl(&b, cl::sycl::range<1>(1));
+      cl::sycl::buffer<cl::sycl::float4, 1> c_sycl(&c, cl::sycl::range<1>(1));
+  
+      queue.submit([&] (cl::sycl::handler& cgh) {
+         auto a_acc = a_sycl.get_access<cl::sycl::access::mode::read>(cgh);
+         auto b_acc = b_sycl.get_access<cl::sycl::access::mode::read>(cgh);
+         auto c_acc = c_sycl.get_access<cl::sycl::access::mode::discard_write>(cgh);
+
+         cgh.single_task<class vector_addition>([=] () {
+         c_acc[0] = a_acc[0] + b_acc[0];
+         });
+      });
+   }
+		
+   return 0;
 }
