@@ -1,31 +1,55 @@
-#include <CL/sycl.hpp>
+#include <sycl.hpp>
 
-using namespace cl::sycl;
+using namespace cl::sycl
 
+#define TOL (0.001)   // tolerance used in floating point comparisons
+#define LENGTH (1024) // Length of vectors a, b and c
 
-int add()
-{
-    float a[] = {1.0, 2.0, 3.0, 4.0};
-    float b[] = {1.0, -1.0, 1.0, -1.0};
-    float out[4];
-    unsigned int n = 4;
-    
-    queue q;
+int main() {
+  std::vector h_a(LENGTH);             // a vector
+  std::vector h_b(LENGTH);             // b vector
+  std::vector h_c(LENGTH);             // c vector
+  std::vector h_r(LENGTH, 0xdeadbeef); // d vector (result)
+  // Fill vectors a and b with random float values
+  int count = LENGTH;
+  for (int i = 0; i < count; i++) {
+    h_a[i] = rand() / (float)RAND_MAX;
+    h_b[i] = rand() / (float)RAND_MAX;
+    h_c[i] = rand() / (float)RAND_MAX;
+  }
+  {
+    // Device buffers
+    buffer d_a(h_a);
+    buffer d_b(h_b);
+    buffer d_c(h_c);
+    buffer d_r(h_d);
+    queue myQueue;
+    command_group(myQueue, [&]()
     {
-        buffer<float> aBuf(a, n);
-        buffer<float> bBuf(b, n);
-        buffer<float> outBuf(out, n);
-        q.submit([&](handler& h)
-                 {
-                     auto aAcc = aBuf.get_access<access::mode::read>(h);
-                     auto bAcc = bBuf.get_access<access::mode::read>(h);
-                     auto outAcc = outBuf.get_access<access::mode::write>(h);
-                     h.parallel_for<class sycl_kernel>(range<1>(n), [=](id<1> id)
-                     {
-                         outAcc[id] = aAcc[id] + bAcc[id];
-                     });
-                 });
-    }
-
-    return 0;
+      // Data accessors
+     auto a = d_a.get_access<access::read>();
+     auto b = d_b.get_access<access::read>();
+     auto c = d_c.get_access<access::read>();
+     auto r = d_r.get_access<access::write>();
+      // Kernel
+      parallel_for(count, kernel_functor([ = ](id<> item) {
+        int i = item.get_global(0);
+        r[i] = a[i] + b[i] + c[i];
+      }));
+    });
+  }
+  // Test the results
+  int correct = 0;
+  float tmp;
+  for (int i = 0; i < count; i++) {
+    tmp = h_a[i] + h_b[i] + h_c[i]; // assign element i of a+b+c to tmp
+    tmp -= h_r[i]; // compute deviation of expected and output result
+    if (tmp * tmp < TOL * TOL) // correct if square deviation is less than
+                               // tolerance squared
+    {
+      correct++;
+    } 
+  }
+  // summarize results
+  return (correct == count);
 }
